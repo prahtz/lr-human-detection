@@ -1,0 +1,7 @@
+data/
+env/
+test.py
+test.ipynb
+run.sbatch
+__pycache__
+.ipynb_checkpoints/

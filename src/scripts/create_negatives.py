@@ -48,9 +48,9 @@ def create_negatives(root_path, out_path):
                     box_dim = max(w, h)
                     for coordinates in coordinates_list:
                         x, y, w, h = coordinates.values()
-                        mask[-box_dim+1:, :] = False
-                        mask[:, -box_dim+1:] = False
-                        mask[max(0, y-box_dim+1):y+box_dim, max(0, x-box_dim+1):x+box_dim] = False
+                        mask[-box_dim:, :] = False
+                        mask[:, -box_dim:] = False
+                        mask[max(0, y-box_dim+1):y+h, max(0, x-box_dim+1):x+w] = False
                     free_points = np.argwhere(mask).tolist()
                     if not free_points:
                         print('empty exists')

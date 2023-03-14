@@ -4,7 +4,8 @@ import random
 import torch
 
 from torch.utils.data import Dataset
-from typing import List
+from typing import List, Tuple
+import torchvision.transforms as transforms
 
 class Positives(Dataset):
     def __init__(self, root_path: str, split: str = 'train') -> None:
@@ -54,3 +55,23 @@ class ConcatDataset(Dataset):
     def __getitem__(self, idx):
         source_id, idx = self.map_idx[idx]
         return self.data_sources[source_id].__getitem__(idx)
+
+
+class BatchCollator:
+    def __init__(self, transforms_fn):
+        self.transforms_fn = transforms_fn
+    def __call__(self, batch) -> Tuple[torch.Tensor, torch.Tensor]:
+        inputs, labels = [item[0] for item in batch], [item[1] for item in batch]
+        inputs = [self.transforms_fn(tensor) for tensor in inputs]
+        inputs = torch.stack(inputs)
+        labels = torch.stack(labels)
+        return inputs, labels
+    
+def load_batch_collator():
+    transforms_fn = transforms.Compose([
+                        transforms.Resize(256),
+                        transforms.CenterCrop(224),
+                        transforms.Lambda(lambda x: x.float()),
+                        transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+                    ])
+    return BatchCollator(transforms_fn)

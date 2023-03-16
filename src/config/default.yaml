@@ -1,0 +1,18 @@
+dataset:
+  negatives_relative_path: negatives
+  positives_relative_path: positives
+  root_path: data/
+model:
+  name: customnet
+training:
+  accumulation_steps: 1
+  eval_batch_size: 32
+  log:
+    log_path: runs/default-run/logs
+    models_path: runs/default-run/models
+    run_path: runs/default-run/
+  lr: 5.0e-05
+  num_epochs: 10
+  num_workers: 4
+  test_batch_size: 32
+  train_batch_size: 32

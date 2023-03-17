@@ -11,6 +11,7 @@ class ModelArgs(CN):
 
 class LogArgs(CN):
     run_path = 'runs/default-run/'
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if os.path.exists(self.run_path):
@@ -30,6 +31,9 @@ class TrainingArgs(CN):
     test_batch_size = 32
     num_epochs = 10
     accumulation_steps = 1
+    metric_for_best_model = 'f1'
+    greater_is_better = True
+
 
 class RootArgs(CN):
     dataset = DatasetArgs()

@@ -7,7 +7,7 @@ import torch.distributed as dist
 
 from torch.utils.tensorboard import SummaryWriter
 from collections import defaultdict
-from tqdm.auto import tqdm
+from tqdm import tqdm
 
 from torch import nn, optim
 import utils
@@ -28,6 +28,7 @@ class Trainer:
                  eval_dataset: Dataset,
                  collate_fn: Callable,
                  evaluator: Evaluator,
+                 callbacks: List[Callback] = []
                 ):
         
         self.training_args = training_args
@@ -37,17 +38,22 @@ class Trainer:
         self.eval_dataset = eval_dataset
         self.collate_fn = collate_fn
         self.evaluator = evaluator
+        self.callbacks = callbacks
+        self.local_rank, self.global_rank, self.num_replicas = utils.get_ranks_and_replicas()
 
         self.train_loader = self.get_train_loader()
         self.eval_loader = self.get_eval_loader()
 
         if self.global_rank == 0:
             self.training_writer = SummaryWriter(training_args.log.log_path)
-
+        
         self.loss_fn = nn.CrossEntropyLoss()
 
         self.training_state_path = os.path.join(training_args.log.models_path, 'training_state.pkl')
         self.best_training_state_path = os.path.join(training_args.log.models_path, 'best_training_state.pkl')
+
+        self.compare_metrics = lambda new, old: new > old if training_args.greater_is_better else lambda new, old: new > old
+        self.best_metric = 0.0
 
     def train(self):
         training_args = self.training_args
@@ -60,11 +66,27 @@ class Trainer:
             self.training_step(training_log)
             self.evaluation_step(training_log)
             self.log_results(training_log, epoch)
-            
+            control = self.run_training_callbacks(training_log, epoch)
+
+            if control.training_save:
+                self.save_training_state()
+            if control.training_stop:
+                break
+
+            if self.training_args.metric_for_best_model is not None:
+                eval_metric = training_log[f'eval/{self.training_args.metric_for_best_model}']
+                if epoch == 0 or self.compare_metrics(eval_metric, self.best_metric):
+                    self.best_metric = eval_metric
+                    self.save_training_state(self.best_training_state_path)
+
+        if self.training_args.metric_for_best_model is not None:
+            self.load_training_state(self.best_training_state_path)
+        
     def training_step(self, training_log):
         self.model.train()
         self.optimizer.zero_grad()
         training_log['train/loss'] = 0.0
+
         for batch_idx, data in enumerate(self.train_loader):
             inputs, labels = data
             if torch.cuda.is_available():
@@ -116,6 +138,15 @@ class Trainer:
         for metric_name, metric_value in training_log.items():
             if self.global_rank == 0:
                 self.training_writer.add_scalar(metric_name, metric_value, epoch)
+
+    def run_training_callbacks(self, training_log, epoch):
+        control = TrainerControl()
+        for callback in self.callbacks:
+            current_control = callback(training_log, epoch)
+            control.training_stop = control.training_stop or current_control.training_stop
+            control.training_save = control.training_save or current_control.training_save
+        return control
+    
     def save_training_state(self, path=None):
         if path is None:
             path = self.training_state_path

@@ -7,7 +7,9 @@ import argparse
 from config.config import get_default_cfg
 import models.utils
 import datasets.utils
+from training.evaluator import BinaryClassificationEvaluator
 from training.trainer import Trainer
+from training.callbacks import EarlyStoppingCallback
 
 def pipeline(args):
     cfg_path = args.cfg_path
@@ -39,12 +41,18 @@ def pipeline(args):
     batch_collator = datasets.utils.BatchCollator(transforms_fn)
     optimizer = torch.optim.Adam(model.parameters(), lr=training_args.lr)
 
+    evaluator = BinaryClassificationEvaluator()
+
+    callbacks = [EarlyStoppingCallback('f1', patience=10)]
+
     trainer = Trainer(training_args=training_args,
                       model=model,
                       optimizer=optimizer,
                       train_dataset=train_dataset,
                       eval_dataset=eval_dataset,
-                      collate_fn=batch_collator)
+                      collate_fn=batch_collator,
+                      evaluator=evaluator,
+                      callbacks=callbacks)
     
     trainer.train()
 

@@ -14,7 +14,9 @@ import utils
 
 from utils import DistributedSequentialSampler
 
-from typing import List, Callable
+from typing import List, Union, Callable
+from training.evaluator import Evaluator
+from training.callbacks import Callback, TrainerControl
 
 
 class Trainer:
@@ -24,7 +26,8 @@ class Trainer:
                  optimizer: optim.Optimizer,
                  train_dataset: Dataset, 
                  eval_dataset: Dataset,
-                 collate_fn: Callable
+                 collate_fn: Callable,
+                 evaluator: Evaluator,
                 ):
         
         self.training_args = training_args
@@ -33,7 +36,7 @@ class Trainer:
         self.train_dataset = train_dataset
         self.eval_dataset = eval_dataset
         self.collate_fn = collate_fn
-        self.global_rank, self.local_rank, self.num_replicas = utils.get_ranks_and_replicas()
+        self.evaluator = evaluator
 
         self.train_loader = self.get_train_loader()
         self.eval_loader = self.get_eval_loader()
@@ -80,6 +83,9 @@ class Trainer:
 
     def evaluation_step(self, training_log):
         self.model.eval()
+        pred_list, label_list = [], []
+        if self.global_rank == 0:
+            print('Running Evaluation...')
         with torch.no_grad():
             training_log['eval/loss'] = 0.0
             training_log['eval/accuracy'] = 0.0
@@ -91,11 +97,25 @@ class Trainer:
                 logits = self.model(inputs)
                 loss = self.loss_fn(logits, labels) / self.training_args.accumulation_steps
                 preds = torch.argmax(logits, dim=-1)
-                
+
+                pred_list.append(preds.detach())
+                label_list.append(labels.detach())
+            
                 training_log['eval/loss'] += (loss.detach() / len(self.eval_loader))
-                training_log['eval/accuracy'] += (torch.sum(preds == labels) / preds.shape[0]) / len(self.eval_loader)
+            
+            for k, v in training_log.items():
+                if dist.is_torchelastic_launched():
+                    value_list = utils.all_gather_object(v, self.num_replicas)
+                    training_log[k] = sum(value_list) / len(value_list)
+            preds, labels = self.gather_eval_predictions(pred_list, label_list)
+            metrics = self.evaluator(preds, labels)
+            for k, v in metrics.items():
+                training_log[f'eval/{k}'] = v
 
     def log_results(self, training_log, epoch: int):
+        for metric_name, metric_value in training_log.items():
+            if self.global_rank == 0:
+                self.training_writer.add_scalar(metric_name, metric_value, epoch)
     def save_training_state(self, path=None):
         if path is None:
             path = self.training_state_path
@@ -139,6 +159,21 @@ class Trainer:
                                  shuffle=False,
                                  sampler=eval_sampler)
         return eval_loader
+
+    def gather_eval_predictions(self, preds: Union[List[torch.Tensor], torch.Tensor], labels: Union[List[torch.Tensor], torch.Tensor]):
+        assert type(preds) == type(labels), 'Predictions and labels must be of the same type.'
+        
+        if isinstance(preds, torch.Tensor):
+            return utils.all_gather_tensor(preds, self.num_replicas, -100, pad_dim=-1).cpu(), \
+                    utils.all_gather_tensor(labels, self.num_replicas, -100, pad_dim=-1).cpu()
+        
+        pred_list, label_list = [], []
+        for pred, label in zip(preds, labels):
+            pred_gather, label_gather = self.gather_eval_predictions(pred, label)
+            pred_list.append(pred_gather)
+            label_list.append(label_gather)
+
+        preds = utils.pad_cat(pred_list, -100, pad_dim=-1)[:len(self.eval_dataset)]
+        labels = utils.pad_cat(label_list, -100, pad_dim=-1)[:len(self.eval_dataset)]
+        return preds, labels
     
-    def gather_eval_predictions(self, preds: List[torch.Tensor], labels: List[torch.Tensor]):
-        pass

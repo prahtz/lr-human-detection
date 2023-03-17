@@ -43,6 +43,9 @@ class Trainer:
 
         self.loss_fn = nn.CrossEntropyLoss()
 
+        self.training_state_path = os.path.join(training_args.log.models_path, 'training_state.pkl')
+        self.best_training_state_path = os.path.join(training_args.log.models_path, 'best_training_state.pkl')
+
     def train(self):
         training_args = self.training_args
         training_log = defaultdict(float)
@@ -93,14 +96,22 @@ class Trainer:
                 training_log['eval/accuracy'] += (torch.sum(preds == labels) / preds.shape[0]) / len(self.eval_loader)
 
     def log_results(self, training_log, epoch: int):
-        for metric_name, metric_tensor in training_log.items():
-            if dist.is_torchelastic_launched():
-                tensor_list = utils.gather_tensor(metric_tensor, self.global_rank, self.num_replicas, 0)
-                if self.global_rank == 0:
-                    metric = torch.mean(torch.stack(tensor_list)).item()
-                    self.training_writer.add_scalar(metric_name, metric, epoch)
-            else:
-                self.training_writer.add_scalar(metric_name, metric_tensor, epoch)
+    def save_training_state(self, path=None):
+        if path is None:
+            path = self.training_state_path
+        if self.global_rank == 0:
+            training_state = {}
+            training_state['optimizer_state_dict'] = self.optimizer.state_dict()
+            training_state['model_state_dict'] = self.model.state_dict()
+            torch.save(training_state, path)
+        utils.barrier()
+
+    def load_training_state(self, path=None):
+        if path is None:
+            path = self.training_state_path
+        training_state = torch.load(path, map_location=torch.device('cpu'))
+        self.model.load_state_dict(training_state['model_state_dict'])
+        self.optimizer.load_state_dict(training_state['optimizer_state_dict'])
 
     def get_train_loader(self):
         train_sampler = DistributedSampler(dataset=self.train_dataset,

@@ -16,12 +16,11 @@ class LogArgs(CN):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.models_path = os.path.join(self.run_path, 'models')
+        self.log_path = os.path.join(self.run_path, 'logs')
         if utils.is_main_process():
             if os.path.exists(self.run_path):
                 print('WARNING: the provided run path already exists, please change it to prevent the override of old files.')
-            self.models_path = os.path.join(self.run_path, 'models')
-            self.log_path = os.path.join(self.run_path, 'logs')
-
             os.makedirs(self.log_path, exist_ok=True)
             os.makedirs(self.models_path, exist_ok=True)
 

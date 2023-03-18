@@ -12,9 +12,9 @@ from tqdm import tqdm
 from torch import nn, optim
 import utils
 
-from utils import DistributedSequentialSampler
+from training.utils import DistributedSequentialSampler, gather_eval_predictions
 
-from typing import List, Union, Callable
+from typing import List, Callable
 from training.evaluator import Evaluator
 from training.callbacks import Callback, TrainerControl
 
@@ -129,7 +129,7 @@ class Trainer:
                 if dist.is_torchelastic_launched():
                     value_list = utils.all_gather_object(v, self.num_replicas)
                     training_log[k] = sum(value_list) / len(value_list)
-            preds, labels = self.gather_eval_predictions(pred_list, label_list)
+            preds, labels = gather_eval_predictions(pred_list, label_list, self.num_replicas)
             metrics = self.evaluator(preds, labels)
             for k, v in metrics.items():
                 training_log[f'eval/{k}'] = v
@@ -190,21 +190,3 @@ class Trainer:
                                  shuffle=False,
                                  sampler=eval_sampler)
         return eval_loader
-
-    def gather_eval_predictions(self, preds: Union[List[torch.Tensor], torch.Tensor], labels: Union[List[torch.Tensor], torch.Tensor]):
-        assert type(preds) == type(labels), 'Predictions and labels must be of the same type.'
-        
-        if isinstance(preds, torch.Tensor):
-            return utils.all_gather_tensor(preds, self.num_replicas, -100, pad_dim=-1).cpu(), \
-                    utils.all_gather_tensor(labels, self.num_replicas, -100, pad_dim=-1).cpu()
-        
-        pred_list, label_list = [], []
-        for pred, label in zip(preds, labels):
-            pred_gather, label_gather = self.gather_eval_predictions(pred, label)
-            pred_list.append(pred_gather)
-            label_list.append(label_gather)
-
-        preds = utils.pad_cat(pred_list, -100, pad_dim=-1)[:len(self.eval_dataset)]
-        labels = utils.pad_cat(label_list, -100, pad_dim=-1)[:len(self.eval_dataset)]
-        return preds, labels
-    

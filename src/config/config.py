@@ -37,11 +37,16 @@ class TrainingArgs(CN):
     greater_is_better = True
     early_stopping_patience = 0
 
+class TestArgs(CN):
+    training_state_path = 'runs/default-run/models/best_training_state.pkl'
+    test_batch_size = 32
+    num_workers = 4
 
 class RootArgs(CN):
     dataset = DatasetArgs()
     model = ModelArgs()
     training = TrainingArgs()
+    test = TestArgs()
 
 def get_default_cfg() -> RootArgs:
     return RootArgs()

@@ -145,6 +145,12 @@ def get_ranks_and_replicas():
         local_rank, global_rank, num_replicas = int(os.environ['LOCAL_RANK']), int(os.environ['RANK']), dist.get_world_size()
     return local_rank, global_rank, num_replicas
 
+def is_main_process():
+    rank = 0
+    if dist.is_torchelastic_launched():
+        rank = int(os.environ['RANK'])
+    return rank == 0
+
 def barrier():
     if dist.is_torchelastic_launched():
         dist.barrier()

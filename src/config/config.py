@@ -35,6 +35,7 @@ class TrainingArgs(CN):
     accumulation_steps = 1
     metric_for_best_model = 'f1'
     greater_is_better = True
+    early_stopping_patience = 0
 
 
 class RootArgs(CN):

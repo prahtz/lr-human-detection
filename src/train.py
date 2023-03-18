@@ -43,7 +43,7 @@ def pipeline(args):
 
     evaluator = BinaryClassificationEvaluator()
 
-    callbacks = [EarlyStoppingCallback('f1', patience=10)]
+    callbacks = [EarlyStoppingCallback(training_args.metric_for_best_model, patience=training_args.early_stopping_patience)]
 
     trainer = Trainer(training_args=training_args,
                       model=model,

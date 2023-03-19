@@ -12,17 +12,17 @@ class BinaryClassificationEvaluator(Evaluator):
     def __init__(self) -> None:
         pass
     
-    def __call__(self, preds: torch.Tensor, labels: torch.Tensor) -> Dict[str, float]:
+    def __call__(self, logits: torch.Tensor, labels: torch.Tensor) -> Dict[str, float]:
         metrics = {}
-        preds = preds[preds != -100]
-        labels = labels[labels != -100]
-        metrics['accuracy'] = accuracy_score(labels, preds)
-        metrics['precision'] = precision_score(labels, preds)
-        metrics['recall'] = recall_score(labels, preds)
-        metrics['f1'] = f1_score(labels, preds)
-        try:
-            metrics['roc_auc'] = roc_auc_score(labels, preds)
-        except ValueError:
-            metrics['roc_auc'] = 1.0
+        one_hot_labels = torch.nn.functional.one_hot(labels, num_classes=2)
+        preds = torch.argmax(logits, dim=-1)
 
+        metrics['accuracy'] = accuracy_score(labels, preds)
+        metrics['precision'] = precision_score(labels, preds, average='macro')
+        metrics['recall'] = recall_score(labels, preds, average='macro')
+        metrics['f1'] = f1_score(labels, preds, average='macro')
+        try:
+            metrics['roc_auc'] = roc_auc_score(one_hot_labels, torch.softmax(logits, dim=-1))
+        except ValueError:
+            metrics['roc_auc'] = 0.0
         return metrics

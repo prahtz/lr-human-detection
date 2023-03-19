@@ -51,7 +51,7 @@ class Trainer:
         self.training_state_path = os.path.join(training_args.log.models_path, 'training_state.pkl')
         self.best_training_state_path = os.path.join(training_args.log.models_path, 'best_training_state.pkl')
 
-        self.compare_metrics = lambda new, old: new > old if training_args.greater_is_better else lambda new, old: new > old
+        self.compare_metrics = lambda new, old: new > old if training_args.greater_is_better else lambda new, old: new < old
         self.best_metric = 0.0
 
     def train(self):
@@ -104,7 +104,7 @@ class Trainer:
 
     def evaluation_step(self, training_log):
         self.model.eval()
-        pred_list, label_list = [], []
+        logits_list, label_list = [], []
         if self.global_rank == 0:
             print('Running Evaluation...')
         with torch.no_grad():
@@ -115,16 +115,17 @@ class Trainer:
                     inputs = inputs.to('cuda')
                     labels = labels.to('cuda')
                 logits = self.model(inputs)
-                loss = self.loss_fn(logits, labels) / self.training_args.accumulation_steps
-                preds = torch.argmax(logits, dim=-1)
+                loss = self.loss_fn(logits, labels)
 
-                pred_list.append(preds.detach())
+                logits_list.append(logits.detach())
                 label_list.append(labels.detach())
             
                 training_log['eval/loss'] += (loss.detach() / len(self.eval_loader))
             
-            preds, labels = gather_eval_predictions(pred_list, label_list, self.num_replicas)
-            self.compute_metrics(preds, labels, training_log)
+            logits, labels = gather_eval_predictions(logits_list, label_list, self.num_replicas)
+            logits = logits[:len(self.eval_dataset)]
+            labels = labels[:len(self.eval_dataset)]
+            self.compute_metrics(logits, labels, training_log)
 
     def compute_metrics(self, preds: torch.Tensor, labels: torch.Tensor, training_log):
         for k, v in training_log.items():

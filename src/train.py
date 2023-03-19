@@ -8,7 +8,7 @@ from config.config import get_default_cfg
 import models.utils
 import datasets.utils
 from training.evaluator import BinaryClassificationEvaluator
-from training.trainer import Trainer
+from training.trainer import RepeatEvalTrainer
 from training.callbacks import EarlyStoppingCallback
 
 def pipeline(args):
@@ -45,14 +45,15 @@ def pipeline(args):
 
     callbacks = [EarlyStoppingCallback(training_args.metric_for_best_model, patience=training_args.early_stopping_patience)]
 
-    trainer = Trainer(training_args=training_args,
-                      model=model,
-                      optimizer=optimizer,
-                      train_dataset=train_dataset,
-                      eval_dataset=eval_dataset,
-                      collate_fn=batch_collator,
-                      evaluator=evaluator,
-                      callbacks=callbacks)
+    trainer = RepeatEvalTrainer(training_args=training_args,
+                                model=model,
+                                optimizer=optimizer,
+                                train_dataset=train_dataset,
+                                eval_dataset=eval_dataset,
+                                collate_fn=batch_collator,
+                                evaluator=evaluator,
+                                callbacks=callbacks,
+                                eval_num_repetitions=training_args.eval_num_repetitions)
     
     trainer.train()
 

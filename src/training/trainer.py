@@ -6,7 +6,6 @@ from config.config import TrainingArgs
 import torch.distributed as dist
 
 from torch.utils.tensorboard import SummaryWriter
-from collections import defaultdict
 from tqdm import tqdm
 
 from torch import nn, optim
@@ -57,7 +56,7 @@ class Trainer:
 
     def train(self):
         training_args = self.training_args
-        training_log = defaultdict(float)
+        training_log = {}
         if self.global_rank == 0:
             total_updates = training_args.num_epochs * len(self.train_loader)
             self.training_progress_bar = tqdm(total=total_updates)
@@ -110,7 +109,6 @@ class Trainer:
             print('Running Evaluation...')
         with torch.no_grad():
             training_log['eval/loss'] = 0.0
-            training_log['eval/accuracy'] = 0.0
             for batch_idx, data in enumerate(self.eval_loader):
                 inputs, labels = data
                 if torch.cuda.is_available():
@@ -125,14 +123,17 @@ class Trainer:
             
                 training_log['eval/loss'] += (loss.detach() / len(self.eval_loader))
             
-            for k, v in training_log.items():
-                if dist.is_torchelastic_launched():
-                    value_list = utils.all_gather_object(v, self.num_replicas)
-                    training_log[k] = sum(value_list) / len(value_list)
             preds, labels = gather_eval_predictions(pred_list, label_list, self.num_replicas)
-            metrics = self.evaluator(preds, labels)
-            for k, v in metrics.items():
-                training_log[f'eval/{k}'] = v
+            self.compute_metrics(preds, labels, training_log)
+
+    def compute_metrics(self, preds: torch.Tensor, labels: torch.Tensor, training_log):
+        for k, v in training_log.items():
+            if dist.is_torchelastic_launched():
+                value_list = utils.all_gather_object(v, self.num_replicas)
+                training_log[k] = sum(value_list) / len(value_list)
+        metrics = self.evaluator(preds, labels)
+        for k, v in metrics.items():
+            training_log[f'eval/{k}'] = v
 
     def log_results(self, training_log, epoch: int):
         for metric_name, metric_value in training_log.items():
@@ -190,3 +191,26 @@ class Trainer:
                                  shuffle=False,
                                  sampler=eval_sampler)
         return eval_loader
+    
+class RepeatEvalTrainer(Trainer):
+    def __init__(self, *args, eval_num_repetitions=30,**kwargs):
+        super().__init__(*args, **kwargs)
+        self.eval_num_repetitions = eval_num_repetitions
+    
+    def evaluation_step(self, training_log):
+        samples = []
+        for _ in range(self.eval_num_repetitions):
+            metrics = {}
+            super().evaluation_step(metrics)
+            samples.append(metrics)
+        with torch.no_grad():
+            keys = samples[0].keys()
+            means = {k: torch.mean(torch.tensor([s[k] for s in samples])).item() for k in keys}
+            if self.eval_num_repetitions > 1:
+                stds = {k: torch.std(torch.tensor([s[k] for s in samples])).item() for k in keys}
+            else:
+                stds = {k: 0.0 for k in keys}
+            for k in keys:
+                suffix = k.split('/')[1]
+                training_log[f'eval/{suffix}'] = means[k]
+                training_log[f'eval/std_{suffix}'] = stds[k]

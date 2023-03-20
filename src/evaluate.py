@@ -26,6 +26,7 @@ def pipeline(args):
     data_args = cfg.dataset
     model_args = cfg.model
     test_args = cfg.test
+    training_args = cfg.training
 
     utils.init_distributed()
     utils.set_seed(random_seed)
@@ -57,13 +58,23 @@ def pipeline(args):
 
     evaluator = BinaryClassificationEvaluator()
 
-    metrics = evaluation_step(model, evaluator, test_loader)
+    metrics = {}
+    samples = [evaluation_step(model, evaluator, test_loader, test_dataset) for _ in range(training_args.eval_num_repetitions)]
+    keys = samples[0].keys()
+    means = {k: torch.mean(torch.tensor([s[k] for s in samples])).item() for k in keys}
+    if training_args.eval_num_repetitions > 1:
+        stds = {k: torch.std(torch.tensor([s[k] for s in samples])).item() for k in keys}
+    else:
+        stds = {k: 0.0 for k in keys}
+    for k in keys:
+        metrics[f'test/{k}'] = means[k]
+        metrics[f'test/std_{k}'] = stds[k]
     if global_rank == 0:
         print(metrics)
 
-def evaluation_step(model, evaluator, loader):
+def evaluation_step(model, evaluator, loader, test_dataset):
     model.eval()
-    pred_list, label_list = [], []
+    logits_list, label_list = [], []
     _, rank, num_replicas = utils.get_ranks_and_replicas()
     if rank == 0:
         print('Running Evaluation...')
@@ -75,16 +86,17 @@ def evaluation_step(model, evaluator, loader):
                 inputs = inputs.to('cuda')
                 labels = labels.to('cuda')
             logits = model(inputs)
-            preds = torch.argmax(logits, dim=-1)
 
-            pred_list.append(preds.detach())
+            logits_list.append(logits.detach())
             label_list.append(labels.detach())
 
             if rank == 0:
                 progress_bar.update(1)
     
-        preds, labels = gather_eval_predictions(pred_list, label_list, num_replicas)
-        metrics = evaluator(preds, labels)
+        logits, labels = gather_eval_predictions(logits_list, label_list, num_replicas)
+        logits = logits[:len(test_dataset)]
+        labels = labels[:len(test_dataset)]
+        metrics = evaluator(logits, labels)
     return metrics
 
 if __name__ == '__main__':

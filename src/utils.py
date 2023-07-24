@@ -4,7 +4,7 @@ import torch
 import random
 import numpy as np
 import torch.distributed as dist
-from typing import List
+from typing import List, Dict, Union
 
 def set_seed(seed: int):
     """
@@ -100,3 +100,10 @@ def pad_stack(tensor_list: List[torch.Tensor], pad_value: int, pad_dim: int = -1
 
 def pad_cat(tensor_list: List[torch.Tensor], pad_value: int, pad_dim: int = -1):
     return torch.cat(pad_tensor_list(tensor_list, pad_value=pad_value, dim=pad_dim), dim=0)
+
+def compute_iou(bb1: Dict[str, Union[float, int]], bb2: Dict[str, Union[float, int]]):
+    area1, area2 = bb1['w'] * bb1['h'], bb2['w'] * bb2['h']
+    dx = min(bb1['x'] + bb1['w'], bb2['x'] + bb2['w']) - max(bb1['x'], bb2['x'])
+    dy = min(bb1['y'] + bb1['h'], bb2['y'] + bb2['h']) - max(bb1['y'], bb2['y'])
+    area_intersection = dx*dy if dx >= 0 and dy >= 0 else 0
+    return area_intersection / (area1 + area2 - area_intersection)

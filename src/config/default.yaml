@@ -7,19 +7,17 @@ model:
 test:
   num_workers: 4
   test_batch_size: 32
-  training_state_path: runs/default-run/models/best_training_state.pkl
+  training_state_path: path/to/checkpoint
 training:
   accumulation_steps: 1
   early_stopping_patience: 0
   eval_batch_size: 32
   eval_num_repetitions: 1
-  greater_is_better: true
   log:
-    log_path: runs/default-run/logs
-    models_path: runs/default-run/models
     run_path: runs/default-run/
   lr: 5.0e-05
   metric_for_best_model: f1
+  mode: max
   num_epochs: 10
   num_workers: 4
   test_batch_size: 32

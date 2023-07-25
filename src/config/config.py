@@ -1,26 +1,21 @@
-from yacs.config import CfgNode as CN
 import os
 
+from yacs.config import CfgNode as CN
+
+
 class DatasetArgs(CN):
-    root_path = 'data/'
-    positives_relative_path = 'positives'
-    negatives_relative_path = 'negatives'
+    root_path = "data/"
+    positives_relative_path = "positives"
+    negatives_relative_path = "negatives"
+
 
 class ModelArgs(CN):
-    name = 'customnet'
+    name = "customnet"
+
 
 class LogArgs(CN):
-    run_path = 'runs/default-run/'
+    run_path = "runs/default-run/"
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.models_path = os.path.join(self.run_path, 'models')
-        self.log_path = os.path.join(self.run_path, 'logs')
-        if 'RANK' in os.environ and int(os.environ['RANK']) == 0:
-            if os.path.exists(self.run_path):
-                print('WARNING: the provided run path already exists, please change it to prevent the override of old files.')
-            os.makedirs(self.log_path, exist_ok=True)
-            os.makedirs(self.models_path, exist_ok=True)
 
 class TrainingArgs(CN):
     log = LogArgs()
@@ -31,15 +26,17 @@ class TrainingArgs(CN):
     test_batch_size = 32
     num_epochs = 10
     accumulation_steps = 1
-    metric_for_best_model = 'f1'
-    greater_is_better = True
+    metric_for_best_model = "f1"
+    mode = "max"
     early_stopping_patience = 0
     eval_num_repetitions = 1
 
+
 class TestArgs(CN):
-    training_state_path = 'runs/default-run/models/best_training_state.pkl'
+    training_state_path = "path/to/checkpoint"
     test_batch_size = 32
     num_workers = 4
+
 
 class RootArgs(CN):
     dataset = DatasetArgs()
@@ -47,12 +44,15 @@ class RootArgs(CN):
     training = TrainingArgs()
     test = TestArgs()
 
+
 def get_default_cfg() -> RootArgs:
     return RootArgs()
 
+
 def save_default_cfg():
-    with open('src/config/default.yaml', 'w') as f:
+    with open("src/config/default.yaml", "w") as f:
         f.write(RootArgs().dump())
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     save_default_cfg()

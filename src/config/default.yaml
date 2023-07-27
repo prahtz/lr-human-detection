@@ -5,9 +5,9 @@ dataset:
 model:
   name: customnet
 test:
+  checkpoint_path: path/to/checkpoint
   num_workers: 4
   test_batch_size: 32
-  training_state_path: path/to/checkpoint
 training:
   accumulation_steps: 1
   early_stopping_patience: 0

@@ -1,6 +1,10 @@
 from typing import Tuple
 
 import torch
+import torch.nn as nn
+
+from config.config import DatasetArgs, TrainingArgs
+from datasets.data_modules import ThermalPersonClassificationDataModule
 
 
 class BatchCollator:
@@ -13,3 +17,9 @@ class BatchCollator:
         inputs = torch.stack(inputs)
         labels = torch.stack(labels).unsqueeze(-1).float()
         return inputs, labels
+
+
+def load_data_module(data_args: DatasetArgs, training_args: TrainingArgs, transforms_fn: nn.Module):
+    data_module = ThermalPersonClassificationDataModule(data_args=data_args, training_args=training_args, transforms_fn=transforms_fn)
+
+    return data_module

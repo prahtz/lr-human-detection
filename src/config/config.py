@@ -33,7 +33,7 @@ class TrainingArgs(CN):
 
 
 class TestArgs(CN):
-    training_state_path = "path/to/checkpoint"
+    checkpoint_path = "path/to/checkpoint"
     test_batch_size = 32
     num_workers = 4
 
@@ -47,6 +47,12 @@ class RootArgs(CN):
 
 def get_default_cfg() -> RootArgs:
     return RootArgs()
+
+
+def save_cfg(cfg: RootArgs, dirpath: str, filename: str):
+    os.makedirs(dirpath, exist_ok=True)
+    with open(os.path.join(dirpath, filename), "w") as f:
+        f.write(cfg.dump())
 
 
 def save_default_cfg():

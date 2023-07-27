@@ -22,15 +22,11 @@ class ThermalPersonClassificationDataModule(L.LightningDataModule):
         self.transforms_fn = transforms_fn
 
     def setup(self, stage: str):
-        positives_path = os.path.join(
-            self.data_args.root_path, self.data_args.positives_relative_path
-        )
-        negatives_path = os.path.join(
-            self.data_args.root_path, self.data_args.negatives_relative_path
-        )
+        positives_path = os.path.join(self.data_args.root_path, self.data_args.positives_relative_path)
+        negatives_path = os.path.join(self.data_args.root_path, self.data_args.negatives_relative_path)
 
         self.datasets = {}
-        for split in ("train", "valid"):
+        for split in ("train", "valid", "test"):
             self.datasets[split] = ThermalPersonClassification(
                 positives_path=positives_path,
                 negatives_path=negatives_path,
@@ -47,20 +43,45 @@ class ThermalPersonClassificationDataModule(L.LightningDataModule):
         )
 
     def val_dataloader(self):
-        return DataLoader(
-            dataset=self.datasets["valid"],
-            batch_size=self.training_args.eval_batch_size,
-            num_workers=self.training_args.num_workers,
-            collate_fn=self.collate_fn,
-            shuffle=False,
-        )
+        dataloaders = [
+            DataLoader(
+                dataset=self.datasets["valid"],
+                batch_size=self.training_args.eval_batch_size,
+                num_workers=self.training_args.num_workers,
+                collate_fn=self.collate_fn,
+                shuffle=False,
+            )
+        ]
+        for _ in range(self.training_args.eval_num_repetitions - 1):
+            dataloaders.append(
+                DataLoader(
+                    dataset=self.datasets["valid"].negatives,
+                    batch_size=self.training_args.eval_batch_size,
+                    num_workers=self.training_args.num_workers,
+                    collate_fn=self.collate_fn,
+                    shuffle=False,
+                )
+            )
+        return dataloaders
 
-
-def load_data_module(
-    data_args: DatasetArgs, training_args: TrainingArgs, transforms_fn: nn.Module
-):
-    data_module = ThermalPersonClassificationDataModule(
-        data_args=data_args, training_args=training_args, transforms_fn=transforms_fn
-    )
-
-    return data_module
+    def test_dataloader(self):
+        dataloaders = [
+            DataLoader(
+                dataset=self.datasets["test"],
+                batch_size=self.training_args.eval_batch_size,
+                num_workers=self.training_args.num_workers,
+                collate_fn=self.collate_fn,
+                shuffle=False,
+            )
+        ]
+        for _ in range(self.training_args.eval_num_repetitions - 1):
+            dataloaders.append(
+                DataLoader(
+                    dataset=self.datasets["test"].negatives,
+                    batch_size=self.training_args.eval_batch_size,
+                    num_workers=self.training_args.num_workers,
+                    collate_fn=self.collate_fn,
+                    shuffle=False,
+                )
+            )
+        return dataloaders

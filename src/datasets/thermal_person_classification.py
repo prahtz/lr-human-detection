@@ -12,8 +12,7 @@ class Positives(Dataset):
         self.dataset_file = h5py.File(self.root_path, "r")
 
     def __len__(self) -> int:
-        return 100
-        # return len(self.dataset_file[self.split])
+        return len(self.dataset_file[self.split])
 
     def __getitem__(self, idx: int):
         split_group = self.dataset_file[self.split]

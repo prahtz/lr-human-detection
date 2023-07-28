@@ -40,6 +40,7 @@ class ThermalPersonClassificationDataModule(L.LightningDataModule):
             batch_size=self.training_args.train_batch_size,
             num_workers=self.training_args.num_workers,
             collate_fn=self.collate_fn,
+            shuffle=True
         )
 
     def val_dataloader(self):

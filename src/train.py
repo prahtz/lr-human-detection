@@ -20,13 +20,14 @@ def pipeline(args):
     data_args = cfg.dataset
     model_args = cfg.model
     training_args = cfg.training
+    test_args = cfg.test
 
     utils.init_distributed()
     utils.set_seed(random_seed)
     dist_info = utils.get_distributed_info()
 
     model_module, transforms_fn = load_model_and_transforms(model_args, learning_rate=training_args.lr)
-    data_module = load_data_module(data_args=data_args, training_args=training_args, transforms_fn=transforms_fn)
+    data_module = load_data_module(data_args=data_args, training_args=training_args, test_args=test_args, transforms_fn=transforms_fn)
 
     logger = TensorBoardLogger(save_dir=training_args.log.run_path, name="")
     callbacks = []
@@ -40,12 +41,15 @@ def pipeline(args):
         )
     callbacks.append(
         ModelCheckpoint(
+            monitor="mu_auroc",
+            mode="max",
             dirpath=os.path.join(logger.log_dir, "models/"),
+            filename="best",
             save_last=True,
         )
     )
 
-    cfg.test.checkpoint_path = os.path.join(logger.log_dir, "models/last.ckpt")
+    cfg.test.checkpoint_path = os.path.join(logger.log_dir, "models/best.ckpt")
     config.save_cfg(cfg, os.path.join(logger.log_dir, "config/"), "test.yaml")
     trainer = Trainer(
         devices=dist_info["local_world_size"],

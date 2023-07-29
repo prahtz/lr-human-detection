@@ -38,9 +38,7 @@ class Negatives(Dataset):
         rand_idx = random.randint(0, item.shape[0] - 1)
         y, x = item[rand_idx]
         box_size, image_path = item.attrs["box_size"], item.attrs["image_path"]
-        image = split_group[f"images/{image_path}"][
-            :, y : y + box_size, x : x + box_size
-        ]
+        image = split_group[f"images/{image_path}"][:, y : y + box_size, x : x + box_size]
         return torch.from_numpy(image), torch.scalar_tensor(0).long()
 
     def __del__(self):
@@ -48,9 +46,7 @@ class Negatives(Dataset):
 
 
 class ThermalPersonClassification(Dataset):
-    def __init__(
-        self, positives_path: str, negatives_path: str, split: str = "train"
-    ) -> None:
+    def __init__(self, positives_path: str, negatives_path: str, split: str = "train") -> None:
         self.positives = Positives(root_path=positives_path, split=split)
         self.negatives = Negatives(root_path=negatives_path, split=split)
         self.total_size = len(self.positives) + len(self.negatives)

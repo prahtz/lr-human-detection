@@ -5,7 +5,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 
 import datasets.utils
-from config.config import DatasetArgs, TrainingArgs
+from config.config import DatasetArgs, TrainingArgs, TestArgs
 from datasets.thermal_person_classification import ThermalPersonClassification
 
 
@@ -14,11 +14,13 @@ class ThermalPersonClassificationDataModule(L.LightningDataModule):
         self,
         data_args: DatasetArgs,
         training_args: TrainingArgs,
+        test_args: TestArgs,
         transforms_fn: nn.Module,
     ):
         super().__init__()
         self.data_args = data_args
         self.training_args = training_args
+        self.test_args = test_args
         self.transforms_fn = transforms_fn
 
     def setup(self, stage: str):
@@ -40,7 +42,7 @@ class ThermalPersonClassificationDataModule(L.LightningDataModule):
             batch_size=self.training_args.train_batch_size,
             num_workers=self.training_args.num_workers,
             collate_fn=self.collate_fn,
-            shuffle=True
+            shuffle=True,
         )
 
     def val_dataloader(self):
@@ -69,18 +71,18 @@ class ThermalPersonClassificationDataModule(L.LightningDataModule):
         dataloaders = [
             DataLoader(
                 dataset=self.datasets["test"],
-                batch_size=self.training_args.eval_batch_size,
-                num_workers=self.training_args.num_workers,
+                batch_size=self.test_args.test_batch_size,
+                num_workers=self.test_args.num_workers,
                 collate_fn=self.collate_fn,
                 shuffle=False,
             )
         ]
-        for _ in range(self.training_args.eval_num_repetitions - 1):
+        for _ in range(self.test_args.test_num_repetitions - 1):
             dataloaders.append(
                 DataLoader(
                     dataset=self.datasets["test"].negatives,
-                    batch_size=self.training_args.eval_batch_size,
-                    num_workers=self.training_args.num_workers,
+                    batch_size=self.test_args.test_batch_size,
+                    num_workers=self.test_args.num_workers,
                     collate_fn=self.collate_fn,
                     shuffle=False,
                 )

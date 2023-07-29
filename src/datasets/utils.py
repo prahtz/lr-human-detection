@@ -3,7 +3,7 @@ from typing import Tuple
 import torch
 import torch.nn as nn
 
-from config.config import DatasetArgs, TrainingArgs
+from config.config import DatasetArgs, TrainingArgs, TestArgs
 from datasets.data_modules import ThermalPersonClassificationDataModule
 
 
@@ -19,7 +19,11 @@ class BatchCollator:
         return inputs, labels
 
 
-def load_data_module(data_args: DatasetArgs, training_args: TrainingArgs, transforms_fn: nn.Module):
-    data_module = ThermalPersonClassificationDataModule(data_args=data_args, training_args=training_args, transforms_fn=transforms_fn)
-
+def load_data_module(data_args: DatasetArgs, training_args: TrainingArgs, test_args: TestArgs, transforms_fn: nn.Module):
+    data_module = ThermalPersonClassificationDataModule(
+        data_args=data_args,
+        training_args=training_args,
+        test_args=test_args,
+        transforms_fn=transforms_fn,
+    )
     return data_module

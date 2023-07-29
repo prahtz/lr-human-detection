@@ -8,6 +8,7 @@ test:
   checkpoint_path: path/to/checkpoint
   num_workers: 4
   test_batch_size: 32
+  test_num_repetitions: 33
 training:
   accumulation_steps: 1
   early_stopping_patience: 0
@@ -16,9 +17,8 @@ training:
   log:
     run_path: runs/default-run/
   lr: 5.0e-05
-  metric_for_best_model: f1
+  metric_for_best_model: mu_auroc
   mode: max
   num_epochs: 10
   num_workers: 4
-  test_batch_size: 32
   train_batch_size: 32

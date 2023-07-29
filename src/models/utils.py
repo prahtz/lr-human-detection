@@ -23,7 +23,7 @@ def load_model_and_transforms(model_args: ModelArgs, checkpoint_path: Path | Non
     else:
         raise NotImplementedError("The specified model name is not supported")
     if checkpoint_path:
-        module = ThermalPersonClassificationModule.load_from_checkpoint(checkpoint_path=checkpoint_path, model=model)
+        module = ThermalPersonClassificationModule.load_from_checkpoint(checkpoint_path=checkpoint_path, model=model, map_location="cpu")
     else:
         module = ThermalPersonClassificationModule(model=model, **kwargs)
     return module, transforms_fn

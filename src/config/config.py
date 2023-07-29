@@ -23,10 +23,9 @@ class TrainingArgs(CN):
     num_workers = 4
     train_batch_size = 32
     eval_batch_size = 32
-    test_batch_size = 32
     num_epochs = 10
     accumulation_steps = 1
-    metric_for_best_model = "f1"
+    metric_for_best_model = "mu_auroc"
     mode = "max"
     early_stopping_patience = 0
     eval_num_repetitions = 1
@@ -36,6 +35,7 @@ class TestArgs(CN):
     checkpoint_path = "path/to/checkpoint"
     test_batch_size = 32
     num_workers = 4
+    test_num_repetitions = 33
 
 
 class RootArgs(CN):

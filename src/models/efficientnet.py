@@ -1,18 +1,19 @@
 import torchvision
 import torchvision.transforms as transforms
 from torch import nn
+from torchvision.models import EfficientNet_B3_Weights
 
 
 def load_efficientnet(model_name: str, freeze_last_layers: int = 4):
     if model_name == "efficientnet-b3":
-        model = torchvision.models.efficientnet_b3()
+        model = torchvision.models.efficientnet_b3(weights=EfficientNet_B3_Weights.DEFAULT)
         for param in model.parameters():
             param.requires_grad = False
 
         for param in model.features[-freeze_last_layers:].parameters():
             param.requires_grad = True
 
-        model.classifier[1] = nn.Linear(in_features=1536, out_features=2)
+        model.classifier[1] = nn.Linear(in_features=1536, out_features=1)
         for param in model.classifier.parameters():
             param.requires_grad = True
         return model

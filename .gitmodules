@@ -1,0 +1,3 @@
+[submodule "intrusion-detection-project"]
+	path = intrusion-detection-project
+	url = https://github.com/prahtz/intrusion-detection-project

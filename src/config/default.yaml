@@ -1,7 +1,8 @@
 dataset:
+  dataset_name: prw-classification
   negatives_relative_path: negatives
   positives_relative_path: positives
-  root_path: data/
+  root_path: data/PRW
 model:
   name: customnet
 test:

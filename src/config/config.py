@@ -4,7 +4,8 @@ from yacs.config import CfgNode as CN
 
 
 class DatasetArgs(CN):
-    root_path = "data/"
+    root_path = "data/PRW"
+    dataset_name = "prw-classification"
     positives_relative_path = "positives"
     negatives_relative_path = "negatives"
 

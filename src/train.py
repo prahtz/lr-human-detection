@@ -26,7 +26,7 @@ def pipeline(args):
     utils.set_seed(random_seed)
     dist_info = utils.get_distributed_info()
 
-    model_module, transforms_fn = load_model_and_transforms(model_args, learning_rate=training_args.lr)
+    model_module, transforms_fn = load_model_and_transforms(model_args, train=True, learning_rate=training_args.lr)
     data_module = load_data_module(data_args=data_args, training_args=training_args, test_args=test_args, transforms_fn=transforms_fn)
 
     logger = TensorBoardLogger(save_dir=training_args.log.run_path, name="")

@@ -20,14 +20,17 @@ def load_efficientnet(model_name: str, freeze_last_layers: int = 4):
     raise NotImplementedError("The name of the provided model is not supported")
 
 
-def get_efficientnet_transforms():
+def get_efficientnet_transforms(train: bool):
     transforms_fn = transforms.Compose(
         [
             transforms.Resize(256),
             transforms.CenterCrop(224),
             transforms.Lambda(lambda x: x.float()),
-            transforms.RandomAffine(degrees=30, translate=(0.1, 0.3)),
             transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
         ]
     )
+    if train:
+        transforms_fn.transforms.append(
+            transforms.RandomAffine(degrees=30, translate=(0.1, 0.3)),
+        )
     return transforms_fn

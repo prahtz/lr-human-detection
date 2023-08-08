@@ -46,20 +46,61 @@ class Negatives(Dataset):
         return self.total_len
 
     def sample_anchor_position(self, anchor_wh, bboxes, im_shape):
-        mask = np.ones(im_shape, dtype=np.bool_)
-        for bbox in bboxes:
-            x, y, w, h = bbox
-            mask[y : y + h, x : x + w] = False
+        width, height = im_shape
         w, h = anchor_wh
         anchor_dim = max(w, h)
-        mask[-anchor_dim:, :] = False
-        mask[:, -anchor_dim:] = False
+        width = width - anchor_dim
+        height = height - anchor_dim
+        # Add 1D index intervals where anchor position can not be sampled
+        ranges = []
         for bbox in bboxes:
             x, y, w, h = bbox
-            mask[max(0, y - anchor_dim + 1) : y + h, max(0, x - anchor_dim + 1) : x + w] = False
-        sample_space = np.argwhere(mask)
-        idx = random.randint(0, len(sample_space) - 1)
-        return sample_space[idx]
+            x, y = max(0, x), max(0, y)
+
+            for k in range(y, y + h):
+                i = k * width + min(x, width)
+                j = k * width + min(x + w, width)
+                ranges.append([i, j])
+
+            for k in range(max(0, y - anchor_dim + 1), y + h):
+                i = k * width + min(max(0, x - anchor_dim + 1), width)
+                j = k * width + min(x + w, width)
+                ranges.append([i, j])
+
+        # Merge overlapped and duplicated intervals
+        ranges = sorted(ranges)
+        idx = 0
+        for i in range(1, len(ranges)):
+            if ranges[idx][1] >= ranges[i][0]:
+                ranges[idx][1] = max(ranges[idx][1], ranges[i][1])
+            else:
+                idx += 1
+                ranges[idx] = ranges[i]
+        ranges = ranges[: idx + 1]
+
+        # Compute intervals where anchors can be sampled
+        intervals, probs = [], []
+        last, total_length = 0, 0
+        for r in ranges:
+            a, b = r
+            a = min(a, height * width)
+            intervals.append([last, a - 1])
+            interval_length = a - last
+            probs.append(interval_length)
+            total_length += interval_length
+            last = b
+            if last >= height * width:
+                break
+        if last < height * width:
+            intervals.append([last, height * width - 1])
+            probs.append(height * width - last)
+            total_length += height * width - last
+        probs = [p / total_length for p in probs]
+
+        # Sample interval according to its frequency probability and then sample the index from it uniformly
+        idx = np.random.choice(len(intervals), p=probs)
+        idx = random.randint(intervals[idx][0], intervals[idx][1])
+        return (idx % width, idx // width)
 
     def __getitem__(self, idx: int):
         img_name = self.idx_to_img_name[idx]
@@ -67,9 +108,9 @@ class Negatives(Dataset):
         bboxes = self.img_group[img_name].attrs["bboxes"]
         anchor_id = np.random.choice(len(self.anchors_weights), p=self.anchors_weights)
         anchor_wh = self.anchors_dict[str(im_w)][anchor_id]
-        anchor_xy = self.sample_anchor_position(anchor_wh, bboxes, (im_w, im_h))
+        x, y = self.sample_anchor_position(anchor_wh, bboxes, (im_w, im_h))
         anchor_size = max(anchor_wh)
-        image = self.img_group[img_name][anchor_xy[1] : anchor_xy[1] + anchor_size, anchor_xy[0] : anchor_xy[0] + anchor_size]
+        image = self.img_group[img_name][y : y + anchor_size, x : x + anchor_size]
         return torch.from_numpy(image).permute(2, 0, 1), torch.tensor(0).long()
 
     def __del__(self):

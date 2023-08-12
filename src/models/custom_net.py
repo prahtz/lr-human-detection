@@ -45,8 +45,11 @@ def get_customnet_transforms():
     train_transforms_fn = transforms.Compose(
         [
             transforms.Resize((128, 128)),
+            transforms.ColorJitter(brightness=(0.5, 1.5), contrast=(0.5, 1.5), saturation=(0.5, 1.5), hue=(-0.1, 0.1)),
             transforms.Lambda(lambda x: x.float()),
             transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+            transforms.RandomAffine(degrees=30, translate=(0.1, 0.3)),
+            transforms.RandomErasing(),
         ]
     )
     eval_transforms_fn = transforms.Compose(
@@ -54,7 +57,6 @@ def get_customnet_transforms():
             transforms.Resize((128, 128)),
             transforms.Lambda(lambda x: x.float()),
             transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
-            transforms.RandomAffine(degrees=30, translate=(0.1, 0.3)),
         ]
     )
     return train_transforms_fn, eval_transforms_fn

@@ -16,13 +16,15 @@ class ThermalPersonClassificationDataModule(L.LightningDataModule):
         data_args: DatasetArgs,
         training_args: TrainingArgs,
         test_args: TestArgs,
-        transforms_fn: nn.Module,
+        train_transforms_fn: nn.Module,
+        eval_transforms_fn: nn.Module,
     ):
         super().__init__()
         self.data_args = data_args
         self.training_args = training_args
         self.test_args = test_args
-        self.transforms_fn = transforms_fn
+        self.train_transforms_fn = train_transforms_fn
+        self.eval_transforms_fn = eval_transforms_fn
 
     def setup(self, stage: str):
         positives_path = os.path.join(self.data_args.root_path, self.data_args.positives_relative_path)
@@ -35,14 +37,15 @@ class ThermalPersonClassificationDataModule(L.LightningDataModule):
                 negatives_path=negatives_path,
                 split=split,
             )
-        self.collate_fn = datasets.utils.BatchCollator(self.transforms_fn)
+        self.train_collate_fn = datasets.utils.BatchCollator(self.train_transforms_fn)
+        self.eval_transforms_fn = datasets.utils.BatchCollator(self.eval_transforms_fn)
 
     def train_dataloader(self):
         return DataLoader(
             dataset=self.datasets["train"],
             batch_size=self.training_args.train_batch_size,
             num_workers=self.training_args.num_workers,
-            collate_fn=self.collate_fn,
+            collate_fn=self.train_collate_fn,
             shuffle=True,
         )
 
@@ -52,7 +55,7 @@ class ThermalPersonClassificationDataModule(L.LightningDataModule):
                 dataset=self.datasets["valid"],
                 batch_size=self.training_args.eval_batch_size,
                 num_workers=self.training_args.num_workers,
-                collate_fn=self.collate_fn,
+                collate_fn=self.eval_transforms_fn,
                 shuffle=False,
             )
         ]
@@ -62,7 +65,7 @@ class ThermalPersonClassificationDataModule(L.LightningDataModule):
                     dataset=self.datasets["valid"].negatives,
                     batch_size=self.training_args.eval_batch_size,
                     num_workers=self.training_args.num_workers,
-                    collate_fn=self.collate_fn,
+                    collate_fn=self.eval_transforms_fn,
                     shuffle=False,
                 )
             )
@@ -74,7 +77,7 @@ class ThermalPersonClassificationDataModule(L.LightningDataModule):
                 dataset=self.datasets["test"],
                 batch_size=self.test_args.test_batch_size,
                 num_workers=self.test_args.num_workers,
-                collate_fn=self.collate_fn,
+                collate_fn=self.eval_transforms_fn,
                 shuffle=False,
             )
         ]
@@ -84,7 +87,7 @@ class ThermalPersonClassificationDataModule(L.LightningDataModule):
                     dataset=self.datasets["test"].negatives,
                     batch_size=self.test_args.test_batch_size,
                     num_workers=self.test_args.num_workers,
-                    collate_fn=self.collate_fn,
+                    collate_fn=self.eval_transforms_fn,
                     shuffle=False,
                 )
             )

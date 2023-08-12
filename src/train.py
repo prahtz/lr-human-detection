@@ -28,7 +28,6 @@ def pipeline(args):
 
     model_module, train_transforms_fn, eval_transforms_fn = load_model_and_transforms(
         model_args,
-        train=True,
         learning_rate=training_args.lr,
     )
     data_module = load_data_module(

@@ -20,8 +20,16 @@ def pipeline(args):
     training_args = cfg.training
     utils.set_seed(random_seed)
 
-    model_module, transforms_fn = load_model_and_transforms(model_args=model_args, train=False, checkpoint_path=test_args.checkpoint_path)
-    data_module = load_data_module(data_args=data_args, training_args=training_args, test_args=test_args, transforms_fn=transforms_fn)
+    model_module, train_transforms_fn, eval_transform_fn = load_model_and_transforms(
+        model_args=model_args, checkpoint_path=test_args.checkpoint_path
+    )
+    data_module = load_data_module(
+        data_args=data_args,
+        training_args=training_args,
+        test_args=test_args,
+        train_transforms_fn=train_transforms_fn,
+        eval_transform_fn=eval_transform_fn,
+    )
     logger = TensorBoardLogger(save_dir=training_args.log.run_path, name="", version="test")
     trainer = Trainer(
         devices=1,

@@ -99,10 +99,9 @@ class CustomCocoBinaryAveragePrecision:
     def __init__(
         self,
         detection_fn: Callable,
-        detection_thresholds: list[float] = [0.5],
     ) -> None:
         self.detection_fn = detection_fn
-        self.detection_thresholds = detection_thresholds
+        self.detection_thresholds = np.linspace(0.5, 0.95, 10).tolist()
 
     def __call__(self, preds: list[dict[str, list[list[int | float] | list[float]]]], targets: list[list[list[int | float]]]):
         aps = {}

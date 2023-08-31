@@ -1,7 +1,8 @@
 import math
 import os
 import random
-from typing import Any, Callable, Dict, Union
+from collections import defaultdict
+from typing import Any, Callable
 
 import numpy as np
 import torch
@@ -103,33 +104,39 @@ class CustomCocoBinaryAveragePrecision:
         self.detection_fn = detection_fn
         self.detection_thresholds = detection_thresholds
 
-    def __call__(self, detected_boxes: list[int | float], confidence_scores: list[float], target_boxes: list[int | float]) -> Any:
+    def __call__(self, preds: list[dict[str, list[list[int | float] | list[float]]]], targets: list[list[list[int | float]]]):
         aps = {}
+        all_preds, all_targets = defaultdict(list), defaultdict(list)
+        for prediction, target_boxes in zip(preds, targets):
+            detected_boxes, confidence_scores = prediction["boxes"], prediction["scores"]
+            for detection_threshold in self.detection_thresholds:
+                used_targets = [False] * len(target_boxes)
+                sorted_pairs = sorted([(score, box) for score, box in zip(confidence_scores, detected_boxes)], key=lambda x: x[0])[::-1]
+                confidence_scores, detected_boxes = [item[0] for item in sorted_pairs], [item[1] for item in sorted_pairs]
+                pred, target = [], []
+                for i in range(len(detected_boxes)):
+                    matched = False
+                    for j in range(len(target_boxes)):
+                        detection_score = self.detection_fn(detected_boxes[i], target_boxes[j])
+                        if detection_score > detection_threshold:
+                            if not used_targets[j]:
+                                pred.append(confidence_scores[i])
+                                target.append(1)
+                                used_targets[j] = True
+                                matched = True
+                    if not matched:
+                        pred.append(confidence_scores[i])
+                        target.append(0)
+                for used in used_targets:
+                    if not used:
+                        pred.append(0.0)
+                        target.append(1)
+                all_preds[detection_threshold] += pred
+                all_targets[detection_threshold] += target
         for detection_threshold in self.detection_thresholds:
-            used_targets = [False] * len(target_boxes)
-            sorted_pairs = sorted([(score, box) for score, box in zip(confidence_scores, detected_boxes)], key=lambda x: x[0])[::-1]
-            confidence_scores, detected_boxes = [item[0] for item in sorted_pairs], [item[1] for item in sorted_pairs]
-            preds, target = [], []
-            for i in range(len(detected_boxes)):
-                matched = False
-                for j in range(len(target_boxes)):
-                    detection_score = self.detection_fn(detected_boxes[i], target_boxes[j])
-                    if detection_score > detection_threshold:
-                        if not used_targets[j]:
-                            preds.append(confidence_scores[i])
-                            target.append(1)
-                            used_targets[j] = True
-                            matched = True
-                if not matched:
-                    preds.append(confidence_scores[i])
-                    target.append(0)
-            for used in used_targets:
-                if not used:
-                    preds.append(0.0)
-                    target.append(1)
-
-            preds, target = torch.tensor(preds), torch.tensor(target)
-            ap = average_precision(preds=preds, target=target, task="binary")
+            all_preds[detection_threshold] = torch.tensor(all_preds[detection_threshold])
+            all_targets[detection_threshold] = torch.tensor(all_targets[detection_threshold])
+            ap = average_precision(preds=all_preds[detection_threshold], target=all_targets[detection_threshold], task="binary")
             aps[f"AP@{detection_threshold}"] = ap
 
         return aps

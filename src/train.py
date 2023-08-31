@@ -15,6 +15,7 @@ from models.utils import load_model_and_transforms
 def pipeline(args):
     cfg_path = args.cfg_path
     random_seed = args.random_seed
+    ckpt_path = args.ckpt_path
     cfg = get_default_cfg()
     cfg.merge_from_file(cfg_path)
     data_args = cfg.dataset
@@ -70,7 +71,7 @@ def pipeline(args):
         log_every_n_steps=0,
     )
 
-    trainer.fit(model_module, data_module)
+    trainer.fit(model_module, data_module, ckpt_path=ckpt_path)
 
 
 if __name__ == "__main__":
@@ -78,6 +79,7 @@ if __name__ == "__main__":
 
     parser.add_argument("cfg_path", help="Path of the YAML configuration file.")
     parser.add_argument("--random-seed", help="Manual random seed", default=42, type=int)
+    parser.add_argument("--ckpt-path", help="Resume training from the specified checkpoint", default=None, type=str)
 
     args = parser.parse_args()
 

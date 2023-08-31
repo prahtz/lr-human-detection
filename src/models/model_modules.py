@@ -1,11 +1,11 @@
 from collections import defaultdict
 
 import lightning as L
-import torch.nn.functional as F
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torchmetrics import CatMetric
-from torchmetrics.functional import accuracy, auroc, f1_score, precision, recall
+from torchmetrics.functional import accuracy, auroc, average_precision, f1_score, precision, recall
 
 
 class ThermalPersonClassificationModule(L.LightningModule):
@@ -62,6 +62,7 @@ class ThermalPersonClassificationModule(L.LightningModule):
             metrics["val_loss"].append(F.binary_cross_entropy(all_preds, all_targets))
             metrics["accuracy"].append(accuracy(all_preds, all_targets, task="binary"))
             metrics["auroc"].append(auroc(all_preds, all_targets.long(), task="binary"))
+            metrics["ap"].append(average_precision(all_preds, all_targets.long(), task="binary"))
 
             metrics["positives_accuracy"].append(accuracy(positives_preds, positives_targets, task="binary"))
             metrics["positives_precision"].append(precision(all_preds, all_targets, task="binary"))

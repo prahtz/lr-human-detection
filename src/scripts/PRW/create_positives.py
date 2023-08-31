@@ -1,8 +1,9 @@
 import argparse
 
 import h5py
-from raw_dataset import PRWRawDataset
 from tqdm import tqdm
+
+from datasets.prw import PRWRawDataset
 
 
 def create_positives(root_path):
@@ -33,4 +34,4 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    create_positives(args.root_path, args.out_path)
+    create_positives(args.root_path)

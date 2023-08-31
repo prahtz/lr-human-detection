@@ -5,8 +5,9 @@ from pathlib import Path
 
 import cv2
 from background_subtraction import BackgroundSubtraction
-from raw_dataset import PRWRawDataset
 from tqdm import tqdm
+
+from datasets.prw import PRWRawDataset
 
 
 def area_fn(area):

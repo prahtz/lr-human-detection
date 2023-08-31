@@ -6,9 +6,10 @@ from pathlib import Path
 import h5py
 import numpy as np
 from PIL import Image
-from raw_dataset import PRWRawDataset
 from sklearn.cluster import KMeans
 from tqdm import tqdm
+
+from datasets.prw import PRWRawDataset
 
 
 def get_anchors_with_weights(root_path, k=7):

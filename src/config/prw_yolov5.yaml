@@ -1,0 +1,10 @@
+# Dataset paths relative to the yolov5 folder
+train: ../data/PRW/detection/images/train
+val:   ../data/PRW/detection/images/valid
+test:  ../data/PRW/detection/images/test
+
+# Number of classes
+nc: 1
+
+# Class names 0 - cat, 1 - dog
+names: ['person']

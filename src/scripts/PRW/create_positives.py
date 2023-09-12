@@ -1,12 +1,14 @@
 import argparse
+from pathlib import Path
 
 import h5py
 from tqdm import tqdm
 
-from datasets.prw import PRWRawDataset
+from src.datasets.prw import PRWRawDataset
 
 
 def create_positives(root_path):
+    root_path = Path(root_path)
     with h5py.File(root_path / "positives.h5", "w") as f_dataset:
         splits = ["train", "valid", "test"]
         for split in splits:

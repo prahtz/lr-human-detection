@@ -50,7 +50,7 @@ def get_default_cfg() -> RootArgs:
     return RootArgs()
 
 
-def save_cfg(cfg: RootArgs, dirpath: str, filename: str):
+def save_cfg(cfg: CN, dirpath: str, filename: str):
     os.makedirs(dirpath, exist_ok=True)
     with open(os.path.join(dirpath, filename), "w") as f:
         f.write(cfg.dump())

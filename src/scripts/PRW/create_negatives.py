@@ -9,7 +9,7 @@ from PIL import Image
 from sklearn.cluster import KMeans
 from tqdm import tqdm
 
-from datasets.prw import PRWRawDataset
+from src.datasets.prw import PRWRawDataset
 
 
 def get_anchors_with_weights(root_path, k=7):
@@ -36,10 +36,13 @@ def get_anchors_with_weights(root_path, k=7):
     return anchors, anchor_probs
 
 
-def create_negatives(root_path, out_path, k):
+def create_negatives(args):
+    root_path = Path(args.root_path)
+    k = args.num_clusters
+
     anchors, anchors_weights = get_anchors_with_weights(root_path, k=k)
     splits = ["train", "valid", "test"]
-    with h5py.File(out_path, "w") as f_dataset:
+    with h5py.File(root_path / "negatives.h5", "w") as f_dataset:
         anchors_grp = f_dataset.create_group("anchors")
         anchors_grp.attrs["anchors_weights"] = anchors_weights
         for k, v in anchors.items():
@@ -50,7 +53,7 @@ def create_negatives(root_path, out_path, k):
             dataset = PRWRawDataset(root_path=root_path, split=split)
             for i in tqdm(range(len(dataset.annotations))):
                 item = dataset.annotations[i]
-                file_path, bboxes, _ = item["img_path"], item["bboxes"]
+                file_path, bboxes = item["img_path"], item["bboxes"]
                 image_name = str(file_path).split("/")[-1]
                 bboxes = np.array([[round(x) for x in bbox] for bbox in bboxes])
 
@@ -64,9 +67,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument("root_path", help="Path of the source dataset")
-    parser.add_argument("out_path", help="Destination path")
-    parser.add_argument("--num_clusters", help="Number of clusters for the KMeans algorithm", default=4)
+    parser.add_argument("--num_clusters", help="Number of clusters for the KMeans algorithm", default=4, type=int)
 
     args = parser.parse_args()
 
-    create_negatives(args.root_path, args.out_path, args.num_clusters)
+    create_negatives(args)

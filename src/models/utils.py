@@ -6,7 +6,7 @@ import torch.nn as nn
 
 from config.config import ModelArgs, TestArgs
 from models import custom_net, custom_net2, custom_net3, custom_net4, efficientnet
-from models.model_modules import ThermalPersonClassificationModule
+from models.model_modules import PRWClassificationModule
 
 
 def load_model_and_transforms(model_args: ModelArgs, checkpoint_path: Path | None = None, **kwargs):
@@ -38,8 +38,8 @@ def load_model_and_transforms(model_args: ModelArgs, checkpoint_path: Path | Non
     else:
         raise NotImplementedError("The specified model name is not supported")
     if checkpoint_path:
-        module = ThermalPersonClassificationModule.load_from_checkpoint(checkpoint_path=checkpoint_path, model=model, map_location="cpu")
+        module = PRWClassificationModule.load_from_checkpoint(checkpoint_path=checkpoint_path, model=model, map_location="cpu")
     else:
-        module = ThermalPersonClassificationModule(model=model, **kwargs)
+        module = PRWClassificationModule(model=model, **kwargs)
     train_transforms_fn, eval_transforms_fn = transforms_fn
     return module, train_transforms_fn, eval_transforms_fn

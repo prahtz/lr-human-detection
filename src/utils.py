@@ -4,9 +4,13 @@ import random
 from collections import defaultdict
 from typing import Any, Callable
 
+import cv2
 import numpy as np
 import torch
 import torch.distributed as dist
+import torch.nn.functional as F
+from background_subtraction import BackgroundSubtraction
+from numpy.typing import NDArray
 from torchmetrics.functional import average_precision
 
 
@@ -88,6 +92,49 @@ def compute_intersection_over_target_area(box, target_box):
     area_intersection = compute_intersection(box, target_box)
     target_area = target_box[2] * target_box[3]
     return area_intersection / target_area
+
+
+class BackgroundSubtractionForDetection:
+    def __init__(self, background_samples, target_shape=None) -> None:
+        self.target_shape = target_shape
+
+        if self.target_shape:
+            height, width = background_samples[0].shape[:2]
+            self.ratios = (height / target_shape[0], width / target_shape[1])
+            for i in range(len(background_samples)):
+                background_samples[i] = cv2.cvtColor(background_samples[i], cv2.COLOR_RGB2GRAY)
+                background_samples[i] = self.scale_gray_img(background_samples[i], size=self.target_shape)
+
+        self.bkg_subtraction = BackgroundSubtraction(
+            background_samples,
+            threshold=8,
+            area_filter_fn=lambda area: area >= 50,
+            opening_k_shape=(3, 3),
+            closing_k_shape=(9, 9),
+            beta=0.1,
+            alpha=0.1,
+            handle_light_changes=True,
+        )
+
+    def scale_gray_img(self, img, size=(640, 640)):
+        img = torch.from_numpy(img).float().unsqueeze(0).unsqueeze(0)
+        return F.interpolate(img, size=size)[0][0].numpy()
+
+    def scale_up_bbox(self, bbox, ratios):
+        bbox = [b for b in bbox]
+        bbox[0] = round(bbox[0] * ratios[1])
+        bbox[1] = round(bbox[1] * ratios[0])
+        bbox[2] = round(bbox[2] * ratios[1])
+        bbox[3] = round(bbox[3] * ratios[0])
+        return bbox
+
+    def step(self, frame: NDArray):
+        frame = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+        frame = self.scale_gray_img(frame, size=self.target_shape)
+        candidate_bboxes = self.bkg_subtraction.step(frame)
+        if self.target_shape:
+            candidate_bboxes = [self.scale_up_bbox(bbox, self.ratios) for bbox in candidate_bboxes]
+        return candidate_bboxes
 
 
 class CustomCocoBinaryAveragePrecision:

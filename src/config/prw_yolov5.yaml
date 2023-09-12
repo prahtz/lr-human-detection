@@ -1,7 +1,8 @@
-# Dataset paths relative to the yolov5 folder
-train: ../data/PRW/detection/images/train
-val:   ../data/PRW/detection/images/valid
-test:  ../data/PRW/detection/images/test
+# Dataset paths
+path: <abspath/to/dataset>
+train: images/train
+val:   images/valid
+test:  images/test
 
 # Number of classes
 nc: 1

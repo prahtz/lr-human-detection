@@ -12,7 +12,7 @@ from datasets.utils import load_data_module
 from models.utils import load_model_and_transforms
 
 
-def pipeline(args):
+def train(args):
     cfg_path = args.cfg_path
     random_seed = args.random_seed
     ckpt_path = args.ckpt_path
@@ -51,8 +51,8 @@ def pipeline(args):
         )
     callbacks.append(
         ModelCheckpoint(
-            monitor="mu_auroc",
-            mode="max",
+            monitor=training_args.metric_for_best_model,
+            mode=training_args.mode,
             dirpath=os.path.join(logger.log_dir, "models/"),
             filename="best",
             save_last=True,
@@ -83,4 +83,4 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    pipeline(args)
+    train(args)

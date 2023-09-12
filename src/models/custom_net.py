@@ -11,18 +11,23 @@ class CustomNet(nn.Module):
         relu = nn.ReLU()
         self.conv_net = nn.Sequential(
             nn.Conv2d(3, 16, (3, 3)),
+            nn.BatchNorm2d(num_features=16),
             relu,
             max_pool2d,
             nn.Conv2d(16, 32, (3, 3)),
+            nn.BatchNorm2d(num_features=32),
             relu,
             max_pool2d,
             nn.Conv2d(32, 64, (3, 3)),
+            nn.BatchNorm2d(num_features=64),
             relu,
             max_pool2d,
             nn.Conv2d(64, 64, (3, 3)),
+            nn.BatchNorm2d(num_features=64),
             relu,
             max_pool2d,
             nn.Conv2d(64, 64, (3, 3)),
+            nn.BatchNorm2d(num_features=64),
             relu,
             max_pool2d,
         )

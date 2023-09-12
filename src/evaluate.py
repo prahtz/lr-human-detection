@@ -9,7 +9,7 @@ from datasets.utils import load_data_module
 from models.utils import load_model_and_transforms
 
 
-def pipeline(args):
+def evaluate(args):
     cfg_path = args.cfg_path
     random_seed = args.random_seed
     cfg = get_default_cfg()
@@ -28,7 +28,7 @@ def pipeline(args):
         training_args=training_args,
         test_args=test_args,
         train_transforms_fn=train_transforms_fn,
-        eval_transform_fn=eval_transform_fn,
+        eval_transforms_fn=eval_transform_fn,
     )
     logger = TensorBoardLogger(save_dir=training_args.log.run_path, name="", version="test")
     trainer = Trainer(
@@ -48,4 +48,4 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    pipeline(args)
+    evaluate(args)

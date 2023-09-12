@@ -8,7 +8,7 @@ from torchmetrics import CatMetric
 from torchmetrics.functional import accuracy, auroc, average_precision, f1_score, precision, recall
 
 
-class ThermalPersonClassificationModule(L.LightningModule):
+class PRWClassificationModule(L.LightningModule):
     def __init__(self, model: nn.Module, learning_rate=2e-5, loss_fn=None):
         super().__init__()
         self.learning_rate = learning_rate

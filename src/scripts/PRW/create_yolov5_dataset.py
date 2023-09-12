@@ -26,7 +26,7 @@ def create_yolov5_dataset(root_path, out_path):
             assert img.shape[1] == 3
             img = F.interpolate(img, size=(640, 640), mode="bilinear")[0]
             new_img_path = images_split_path / img_name
-            if new_img_path.exists():
+            if not new_img_path.exists():
                 save_image(img, new_img_path)
                 with open(labels_split_path / (img_stem + ".txt"), "w") as f:
                     for box in bboxes:

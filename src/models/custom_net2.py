@@ -45,7 +45,7 @@ def load_customnet2():
 def get_customnet2_transforms():
     train_transforms_fn = transforms.Compose(
         [
-            transforms.RandomResizedCrop((64, 64)),
+            transforms.RandomResizedCrop((64, 64), scale=(0.25, 1), antialias=None),
             transforms.ColorJitter(brightness=(0.5, 1.5), contrast=(0.5, 1.5), saturation=(0.5, 1.5), hue=(-0.1, 0.1)),
             transforms.Lambda(lambda x: x.float()),
             transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
@@ -53,7 +53,7 @@ def get_customnet2_transforms():
     )
     eval_transforms_fn = transforms.Compose(
         [
-            transforms.Resize((64, 64)),
+            transforms.Resize((64, 64), antialias=None),
             transforms.Lambda(lambda x: x.float()),
             transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
         ]

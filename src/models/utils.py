@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 
 from config.config import ModelArgs, TestArgs
-from models import custom_net, custom_net2, custom_net3, custom_net4, efficientnet
+from models import custom_net, custom_net2, custom_net3, efficientnet
 from models.model_modules import PRWClassificationModule
 
 
@@ -24,11 +24,6 @@ def load_model_and_transforms(model_args: ModelArgs, checkpoint_path: Path | Non
         model, transforms_fn = (
             custom_net3.load_customnet3(),
             custom_net3.get_customnet3_transforms(),
-        )
-    elif model_args.name == "customnet4":
-        model, transforms_fn = (
-            custom_net4.load_customnet4(),
-            custom_net4.get_customnet4_transforms(),
         )
     elif model_args.name == "efficientnet":
         model, transforms_fn = (

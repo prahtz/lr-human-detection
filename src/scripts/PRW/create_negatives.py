@@ -22,7 +22,7 @@ def get_anchors_with_weights(root_path, k=7):
     scales = np.stack([widths / np.max(widths), heights / np.max(heights)], axis=-1)  # assuming parallel maximums
     rescaled_widths_heights = bboxes / scales
     areas = rescaled_widths_heights[:, 0] * rescaled_widths_heights[:, 1]
-    perc_idx = np.argmin(abs(areas - np.percentile(areas, 99.9)))
+    perc_idx = np.argmin(abs(np.sort(areas) - np.percentile(areas, 98.0)))
     idx = np.argsort(areas)[:perc_idx]
     rescaled_widths_heights, heights, widths, scales = rescaled_widths_heights[idx], heights[idx], widths[idx], scales[idx]
     model = KMeans(n_clusters=k, n_init="auto", random_state=42)

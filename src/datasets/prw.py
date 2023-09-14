@@ -97,6 +97,8 @@ class Negatives(Dataset):
             intervals.append([last, height * width - 1])
             probs.append(height * width - last)
             total_length += height * width - last
+        if total_length == 0:
+            return (0, 0)
         probs = [p / total_length for p in probs]
 
         # Sample interval according to its frequency probability and then sample the index from it uniformly

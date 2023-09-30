@@ -5,6 +5,7 @@ dataset:
   root_path: data/PRW
 model:
   name: customnet
+  task: classification
 test:
   checkpoint_path: path/to/checkpoint
   num_workers: 4

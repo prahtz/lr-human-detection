@@ -17,11 +17,10 @@ def evaluate_with_bs(args):
     cfg = get_default_cfg()
     cfg.merge_from_file(cfg_path)
 
-    model, _, eval_transforms_fn = load_model_and_transforms(
+    model, _, eval_transforms_fn, _ = load_model_and_transforms(
         model_args=cfg.model,
         checkpoint_path=cfg.test.checkpoint_path,
     )
-    preds = []
     model.eval()
 
     # Load dataset

@@ -121,21 +121,6 @@ class Negatives(Dataset):
         self.dataset_file.close()
 
 
-class PRWClassification(Dataset):
-    def __init__(self, root_path: str, split: str = "train") -> None:
-        self.positives = Positives(root_path=root_path, split=split)
-        self.negatives = Negatives(root_path=root_path, split=split)
-        self.total_size = len(self.positives) + len(self.negatives)
-
-    def __len__(self) -> int:
-        return self.total_size
-
-    def __getitem__(self, idx: int):
-        if idx < len(self.positives):
-            return self.positives.__getitem__(idx)
-        return self.negatives.__getitem__(idx - len(self.positives))
-
-
 class PRWRawDataset(Dataset):
     __ALLOWED_SPLITS__ = ["train", "valid", "test"]
 
@@ -182,3 +167,18 @@ class PRWRawDataset(Dataset):
         img_path, bboxes = item["img_path"], item["bboxes"]
         img = np.array(Image.open(img_path))
         return img, bboxes, item["video_id"]
+
+
+class PRWClassification(Dataset):
+    def __init__(self, root_path: str, split: str = "train") -> None:
+        self.positives = Positives(root_path=root_path, split=split)
+        self.negatives = Negatives(root_path=root_path, split=split)
+        self.total_size = len(self.positives) + len(self.negatives)
+
+    def __len__(self) -> int:
+        return self.total_size
+
+    def __getitem__(self, idx: int):
+        if idx < len(self.positives):
+            return self.positives.__getitem__(idx)
+        return self.negatives.__getitem__(idx - len(self.positives))

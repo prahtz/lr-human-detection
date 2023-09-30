@@ -12,6 +12,7 @@ class DatasetArgs(CN):
 
 class ModelArgs(CN):
     name = "customnet"
+    task = "classification"
 
 
 class LogArgs(CN):

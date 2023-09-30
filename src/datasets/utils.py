@@ -1,10 +1,6 @@
 from typing import Tuple
 
 import torch
-import torch.nn as nn
-
-from config.config import DatasetArgs, TestArgs, TrainingArgs
-from datasets.data_modules import PRWClassificationDataModule, ThermalPersonClassificationDataModule
 
 
 class BatchCollator:
@@ -17,32 +13,3 @@ class BatchCollator:
         inputs = torch.stack(inputs)
         labels = torch.stack(labels).unsqueeze(-1).float()
         return inputs, labels
-
-
-def load_data_module(
-    data_args: DatasetArgs,
-    training_args: TrainingArgs,
-    test_args: TestArgs,
-    train_transforms_fn: nn.Module,
-    eval_transforms_fn: nn.Module,
-):
-    if data_args.dataset_name == "thermal-person-classification":
-        data_module = ThermalPersonClassificationDataModule(
-            data_args=data_args,
-            training_args=training_args,
-            test_args=test_args,
-            train_transforms_fn=train_transforms_fn,
-            eval_transforms_fn=eval_transforms_fn,
-        )
-    elif data_args.dataset_name == "prw-classification":
-        data_module = PRWClassificationDataModule(
-            data_args=data_args,
-            training_args=training_args,
-            test_args=test_args,
-            train_transforms_fn=train_transforms_fn,
-            eval_transforms_fn=eval_transforms_fn,
-        )
-    else:
-        raise NotImplementedError("The specified dataset name is not supported.")
-
-    return data_module

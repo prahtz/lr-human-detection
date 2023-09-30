@@ -5,7 +5,7 @@ from lightning.pytorch.loggers import TensorBoardLogger
 
 import utils
 from config.config import get_default_cfg
-from datasets.utils import load_data_module
+from datasets.data_modules import load_data_module
 from models.utils import load_model_and_transforms
 
 
@@ -20,7 +20,7 @@ def evaluate(args):
     training_args = cfg.training
     utils.set_seed(random_seed)
 
-    model_module, train_transforms_fn, eval_transform_fn = load_model_and_transforms(
+    model_module, train_transforms_fn, eval_transforms_fn, label_transforms_fn = load_model_and_transforms(
         model_args=model_args, checkpoint_path=test_args.checkpoint_path
     )
     data_module = load_data_module(
@@ -28,7 +28,8 @@ def evaluate(args):
         training_args=training_args,
         test_args=test_args,
         train_transforms_fn=train_transforms_fn,
-        eval_transforms_fn=eval_transform_fn,
+        eval_transforms_fn=eval_transforms_fn,
+        label_transforms_fn=label_transforms_fn,
     )
     logger = TensorBoardLogger(save_dir=training_args.log.run_path, name="", version="test")
     trainer = Trainer(

@@ -6,7 +6,7 @@ import yolov5
 from tqdm import tqdm
 
 from datasets.prw import PRWRawDataset
-from utils import CustomCocoBinaryAveragePrecision, compute_intersection_over_target_area
+from utils import CustomCocoBinaryAveragePrecision, compute_intersection_over_target_area, compute_iou
 
 
 def evaluate_yolo(args):
@@ -14,6 +14,7 @@ def evaluate_yolo(args):
     data_path = args.data_path
 
     map_fn = CustomCocoBinaryAveragePrecision(compute_intersection_over_target_area)
+    map_fn2 = CustomCocoBinaryAveragePrecision(compute_iou)
     model = yolov5.load(model_source)
     data = PRWRawDataset(data_path, "test", shuffle=False)
 
@@ -39,7 +40,9 @@ def evaluate_yolo(args):
         targets.append(target_boxes)
 
     aps = map_fn(predictions, targets)
+    aps2 = map_fn2(predictions, targets)
     print("Average Precisions:", aps)
+    print("Average Precisions (IoU):", aps2)
     print("Average time for each image:", sum(times) / len(times))
 
 

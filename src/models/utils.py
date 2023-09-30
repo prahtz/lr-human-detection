@@ -4,7 +4,7 @@ from pathlib import Path
 import torch
 import torch.nn as nn
 
-from config.config import ModelArgs, TestArgs
+from config.config import ModelArgs
 from models import custom_net, custom_net2, custom_net3, efficientnet
 from models.model_modules import PRWClassificationModule
 
@@ -32,9 +32,20 @@ def load_model_and_transforms(model_args: ModelArgs, checkpoint_path: Path | Non
         )
     else:
         raise NotImplementedError("The specified model name is not supported")
-    if checkpoint_path:
-        module = PRWClassificationModule.load_from_checkpoint(checkpoint_path=checkpoint_path, model=model, map_location="cpu")
+
+    if model_args.task == "classification":
+        module_class = PRWClassificationModule
     else:
-        module = PRWClassificationModule(model=model, **kwargs)
-    train_transforms_fn, eval_transforms_fn = transforms_fn
-    return module, train_transforms_fn, eval_transforms_fn
+        raise NotImplementedError("The specified task is not supported")
+
+    if checkpoint_path:
+        module = module_class.load_from_checkpoint(checkpoint_path=checkpoint_path, model=model, map_location="cpu")
+    else:
+        module = module_class(model=model, **kwargs)
+
+    if len(transforms_fn) == 2:
+        train_transforms_fn, eval_transforms_fn = transforms_fn
+        label_transforms_fn = None
+    else:
+        train_transforms_fn, eval_transforms_fn, label_transforms_fn = transforms_fn
+    return module, train_transforms_fn, eval_transforms_fn, label_transforms_fn

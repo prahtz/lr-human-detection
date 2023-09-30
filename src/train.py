@@ -1,6 +1,7 @@
 import argparse
 import os
 
+import torch
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint
 from lightning.pytorch.loggers import TensorBoardLogger
@@ -8,7 +9,7 @@ from lightning.pytorch.loggers import TensorBoardLogger
 import utils
 from config import config
 from config.config import get_default_cfg
-from datasets.utils import load_data_module
+from datasets.data_modules import load_data_module
 from models.utils import load_model_and_transforms
 
 
@@ -27,7 +28,7 @@ def train(args):
     utils.set_seed(random_seed)
     dist_info = utils.get_distributed_info()
 
-    model_module, train_transforms_fn, eval_transforms_fn = load_model_and_transforms(
+    model_module, train_transforms_fn, eval_transforms_fn, label_transforms_fn = load_model_and_transforms(
         model_args,
         learning_rate=training_args.lr,
     )
@@ -37,6 +38,7 @@ def train(args):
         test_args=test_args,
         train_transforms_fn=train_transforms_fn,
         eval_transforms_fn=eval_transforms_fn,
+        labels_transforms_fn=label_transforms_fn,
     )
 
     logger = TensorBoardLogger(save_dir=training_args.log.run_path, name="")
@@ -58,10 +60,10 @@ def train(args):
             save_last=True,
         )
     )
-
     cfg.test.checkpoint_path = os.path.join(logger.log_dir, "models/best.ckpt")
     config.save_cfg(cfg, os.path.join(logger.log_dir, "config/"), "test.yaml")
     trainer = Trainer(
+        accelerator="gpu" if torch.cuda.is_available() else "cpu",
         devices=dist_info["local_world_size"],
         num_nodes=dist_info["num_nodes"],
         logger=logger,

@@ -8,6 +8,7 @@ import cv2
 import numpy as np
 import torch
 import torch.distributed as dist
+import torch.nn as nn
 import torch.nn.functional as F
 from background_subtraction import BackgroundSubtraction
 from numpy.typing import NDArray
@@ -33,10 +34,9 @@ def init_distributed():
         if torch.cuda.is_available():
             backend = "nccl"
         dist.init_process_group(backend)
-        local_rank = int(os.environ["LOCAL_RANK"])
-
-        if torch.cuda.is_available():
-            torch.cuda.set_device(local_rank)
+    local_rank = int(os.environ["LOCAL_RANK"]) if "LOCAL_RANK" in os.environ else 0
+    if torch.cuda.is_available():
+        torch.cuda.set_device(local_rank)
 
 
 def get_distributed_info():
@@ -182,7 +182,10 @@ class CustomCocoBinaryAveragePrecision:
         for detection_threshold in self.detection_thresholds:
             all_preds[detection_threshold] = torch.tensor(all_preds[detection_threshold])
             all_targets[detection_threshold] = torch.tensor(all_targets[detection_threshold])
-            ap = average_precision(preds=all_preds[detection_threshold], target=all_targets[detection_threshold], task="binary")
+            if all_preds[detection_threshold].numel():
+                ap = average_precision(preds=all_preds[detection_threshold], target=all_targets[detection_threshold], task="binary")
+            else:
+                ap = 0.0
             aps[f"AP@{detection_threshold}"] = ap
 
         return aps

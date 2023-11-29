@@ -169,6 +169,39 @@ class PRWRawDataset(Dataset):
         return img, bboxes, item["video_id"]
 
 
+from pathlib import Path
+
+import h5py
+import torch
+
+
+class PRWClassificationFromSubtraction(Dataset):
+    def __init__(self, root_path, split) -> None:
+        self.root_path = Path(root_path)
+        self.split = split
+        self.dataset_file = h5py.File(self.root_path / "subtraction_dataset.h5", "r")
+
+        self.positives = self.dataset_file[self.split]["positives"]
+        self.negatives = self.dataset_file[self.split]["negatives"]
+        self.num_positives = len(self.positives)
+        self.num_negatives = len(self.negatives)
+
+    def __len__(self) -> int:
+        return self.num_negatives + self.num_positives
+
+    def __getitem__(self, idx: int):
+        if idx < self.num_positives:
+            image = self.positives[str(idx)][:]
+            label = 1
+        else:
+            image = self.negatives[str(idx - self.num_positives)][:]
+            label = 0
+        return torch.from_numpy(image).permute(2, 0, 1), torch.scalar_tensor(label).long()
+
+    def __del__(self):
+        self.dataset_file.close()
+
+
 class PRWClassification(Dataset):
     def __init__(self, root_path: str, split: str = "train") -> None:
         self.positives = Positives(root_path=root_path, split=split)

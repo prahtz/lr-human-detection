@@ -10,6 +10,7 @@ import utils
 from config import config
 from config.config import get_default_cfg
 from datasets.data_modules import load_data_module
+from datasets.prw import PRWClassificationFromSubtraction
 from models.utils import load_model_and_transforms
 
 
@@ -38,8 +39,14 @@ def train(args):
         test_args=test_args,
         train_transforms_fn=train_transforms_fn,
         eval_transforms_fn=eval_transforms_fn,
-        labels_transforms_fn=label_transforms_fn,
+        label_transforms_fn=label_transforms_fn,
     )
+
+    if data_args.dataset_name == "prw-classification-from-subtraction":
+        temp_dataset = PRWClassificationFromSubtraction(data_args.root_path, "train")
+        pos_weight = temp_dataset.num_negatives / temp_dataset.num_positives
+        del temp_dataset
+        model_module.loss_fn.pos_weight = torch.tensor(pos_weight)
 
     logger = TensorBoardLogger(save_dir=training_args.log.run_path, name="")
     callbacks = []

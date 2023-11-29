@@ -95,15 +95,14 @@ def compute_intersection_over_target_area(box, target_box):
 
 
 class BackgroundSubtractionForDetection:
-    def __init__(self, background_samples, target_shape=None) -> None:
+    def __init__(self, background_samples, target_shape=None, c_optimized=True) -> None:
         self.target_shape = target_shape
-
+        self.c_optimized = c_optimized
         if self.target_shape:
             height, width = background_samples[0].shape[:2]
             self.ratios = (height / target_shape[0], width / target_shape[1])
             for i in range(len(background_samples)):
-                background_samples[i] = cv2.cvtColor(background_samples[i], cv2.COLOR_RGB2GRAY)
-                background_samples[i] = self.scale_gray_img(background_samples[i], size=self.target_shape)
+                background_samples[i] = self.preprocess_image(background_samples[i], target_shape)
 
         self.bkg_subtraction = BackgroundSubtraction(
             background_samples,
@@ -114,11 +113,17 @@ class BackgroundSubtractionForDetection:
             beta=0.1,
             alpha=0.1,
             handle_light_changes=True,
+            c_optimized=c_optimized,
         )
 
-    def scale_gray_img(self, img, size=(640, 640)):
-        img = torch.from_numpy(img).float().unsqueeze(0).unsqueeze(0)
-        return F.interpolate(img, size=size)[0][0].numpy()
+    def preprocess_image(self, img, target_size=(640, 640)):
+        img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+        if self.c_optimized:
+            img = cv2.resize(src=img, dsize=target_size[::-1], interpolation=cv2.INTER_LINEAR).astype(np.float32)
+        else:
+            img = torch.from_numpy(img).float().unsqueeze(0).unsqueeze(0)
+            img = F.interpolate(img, size=target_size)[0][0].numpy()
+        return img
 
     def scale_up_bbox(self, bbox, ratios):
         bbox = [b for b in bbox]
@@ -129,8 +134,7 @@ class BackgroundSubtractionForDetection:
         return bbox
 
     def step(self, frame: NDArray):
-        frame = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
-        frame = self.scale_gray_img(frame, size=self.target_shape)
+        frame = self.preprocess_image(frame, target_size=self.target_shape)
         candidate_bboxes = self.bkg_subtraction.step(frame)
         if self.target_shape:
             candidate_bboxes = [self.scale_up_bbox(bbox, self.ratios) for bbox in candidate_bboxes]

@@ -39,7 +39,7 @@ def load_model_and_transforms(model_args: ModelArgs, checkpoint_path: Path | Non
         raise NotImplementedError("The specified task is not supported")
 
     if checkpoint_path:
-        module = module_class.load_from_checkpoint(checkpoint_path=checkpoint_path, model=model, map_location="cpu")
+        module = module_class.load_from_checkpoint(checkpoint_path=checkpoint_path, model=model, map_location="cpu", strict=False)
     else:
         module = module_class(model=model, **kwargs)
 

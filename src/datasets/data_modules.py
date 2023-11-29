@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 
 import datasets.utils
 from config.config import DatasetArgs, TestArgs, TrainingArgs
-from datasets.prw import PRWClassification
+from datasets.prw import PRWClassification, PRWClassificationFromSubtraction
 from datasets.thermal_person_classification import ThermalPersonClassification
 
 
@@ -115,10 +115,18 @@ class PRWClassificationDataModule(L.LightningDataModule):
     def setup(self, stage: str):
         self.datasets = {}
         for split in self.__ALLOWED_SPLITS:
-            self.datasets[split] = PRWClassification(
-                root_path=self.data_args.root_path,
-                split=split,
-            )
+            if self.data_args.dataset_name == "prw-classification":
+                self.datasets[split] = PRWClassification(
+                    root_path=self.data_args.root_path,
+                    split=split,
+                )
+            elif self.data_args.dataset_name == "prw-classification-from-subtraction":
+                self.datasets[split] = PRWClassificationFromSubtraction(
+                    root_path=self.data_args.root_path,
+                    split=split,
+                )
+            else:
+                raise RuntimeError("Unsupported dataset name")
         self.train_collate_fn = datasets.utils.BatchCollator(self.train_transforms_fn)
         self.eval_collate_fn = datasets.utils.BatchCollator(self.eval_transforms_fn)
 
@@ -141,16 +149,17 @@ class PRWClassificationDataModule(L.LightningDataModule):
                 shuffle=False,
             )
         ]
-        for _ in range(self.training_args.eval_num_repetitions - 1):
-            dataloaders.append(
-                DataLoader(
-                    dataset=self.datasets["valid"].negatives,
-                    batch_size=self.training_args.eval_batch_size,
-                    num_workers=self.training_args.num_workers,
-                    collate_fn=self.eval_collate_fn,
-                    shuffle=False,
+        if isinstance(self.datasets["valid"], PRWClassification):
+            for _ in range(self.training_args.eval_num_repetitions - 1):
+                dataloaders.append(
+                    DataLoader(
+                        dataset=self.datasets["valid"].negatives,
+                        batch_size=self.training_args.eval_batch_size,
+                        num_workers=self.training_args.num_workers,
+                        collate_fn=self.eval_collate_fn,
+                        shuffle=False,
+                    )
                 )
-            )
         return dataloaders
 
     def test_dataloader(self):
@@ -163,16 +172,17 @@ class PRWClassificationDataModule(L.LightningDataModule):
                 shuffle=False,
             )
         ]
-        for _ in range(self.test_args.test_num_repetitions - 1):
-            dataloaders.append(
-                DataLoader(
-                    dataset=self.datasets["test"].negatives,
-                    batch_size=self.test_args.test_batch_size,
-                    num_workers=self.test_args.num_workers,
-                    collate_fn=self.eval_collate_fn,
-                    shuffle=False,
+        if isinstance(self.datasets["test"], PRWClassification):
+            for _ in range(self.test_args.test_num_repetitions - 1):
+                dataloaders.append(
+                    DataLoader(
+                        dataset=self.datasets["test"].negatives,
+                        batch_size=self.test_args.test_batch_size,
+                        num_workers=self.test_args.num_workers,
+                        collate_fn=self.eval_collate_fn,
+                        shuffle=False,
+                    )
                 )
-            )
         return dataloaders
 
 
@@ -192,7 +202,7 @@ def load_data_module(
             train_transforms_fn=train_transforms_fn,
             eval_transforms_fn=eval_transforms_fn,
         )
-    elif data_args.dataset_name == "prw-classification":
+    elif data_args.dataset_name in ["prw-classification", "prw-classification-from-subtraction"]:
         data_module = PRWClassificationDataModule(
             data_args=data_args,
             training_args=training_args,
